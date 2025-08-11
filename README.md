@@ -43,6 +43,8 @@ SocioStatSense is a production-ready adaptive statistical modeling system that c
 
 ## Quick Start
 
+Sample dataset download: place your synthetic CSV at `data/samples/synthetic_socioeconomic.csv` and upload it via the app (File Uploader). The app requires the following columns: `date, unemployment_rate, inflation_rate, gdp_growth, twitter_sentiment, google_trends_index, avg_temperature, stock_index_close, mobility_change, covid_cases`. 
+
 1) Clone and setup
 
 ```bash
