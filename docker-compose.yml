@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # Main application dashboard
+  dashboard:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./models:/app/models
+      - ./reports:/app/reports
+      - ./.env:/app/.env
+    environment:
+      - PYTHONPATH=/app
+      - STREAMLIT_SERVER_PORT=8501
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    depends_on:
+      - data-ingestion
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Data ingestion service
+  data-ingestion:
+    build: .
+    command: ["python", "main.py", "ingest", "--continuous", "--interval", "60"]
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./.env:/app/.env
+    environment:
+      - PYTHONPATH=/app
+    restart: unless-stopped
+
+  # Model training service (runs periodically)
+  model-trainer:
+    build: .
+    command: ["python", "main.py", "train", "--model-type", "both", "--save-model"]
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./models:/app/models
+      - ./.env:/app/.env
+    environment:
+      - PYTHONPATH=/app
+    restart: "no"
+    depends_on:
+      - data-ingestion
+
+  # Monitoring and alerting service
+  monitor:
+    build: .
+    command: ["python", "main.py", "monitor", "--interval", "30"]
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./reports:/app/reports
+      - ./.env:/app/.env
+    environment:
+      - PYTHONPATH=/app
+    restart: unless-stopped
+    depends_on:
+      - data-ingestion
+
+  # Optional: Redis for caching (if needed for scaling)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # Optional: PostgreSQL for production database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: socioeconomic
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
+  postgres_data:
+
+networks:
+  default:
+    name: socioeconomic-network
