@@ -43,7 +43,12 @@ SocioStatSense is a production-ready adaptive statistical modeling system that c
 
 ## Quick Start
 
-Upload your dataset via the app (File Uploader). The CSV must contain these columns: `date, unemployment_rate, inflation_rate, gdp_growth, twitter_sentiment, google_trends_index, avg_temperature, stock_index_close, mobility_change, covid_cases`. If you want to keep a sample file in the repo, place it at `data/samples/socioeconomic.csv` and upload it from there.
+Download the dataset:
+- Direct download (raw): https://raw.githubusercontent.com/avisikta17pal/SocioStatSense/main/data/samples/cloud_metrics_simulated.csv
+- View in repo: [data/samples/cloud_metrics_simulated.csv](data/samples/cloud_metrics_simulated.csv)
+
+
+Upload your dataset via the app (File Uploader). The CSV must contain these columns: `date, unemployment_rate, inflation_rate, gdp_growth, twitter_sentiment, google_trends_index, avg_temperature, stock_index_close, mobility_change, covid_cases`. If you want to keep a sample file in the repo, place it at `data/samples/cloud_metrics_simulated.csv` and upload it from there.
 
 1) Clone and setup
 
