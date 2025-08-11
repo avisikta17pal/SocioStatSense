@@ -4,13 +4,13 @@ SocioStatSense is a production-ready adaptive statistical modeling system that c
 
 ## Features
 
-- Real-time data ingestion and preprocessing
-- Adaptive Bayesian modeling with uncertainty estimates
-- Change-point detection and structural break alerts
-- Causal inference (e.g., Granger causality, intervention analysis)
-- Modern Streamlit dashboard with scenario controls
-- External API clients (Twitter, Alpha Vantage, OpenWeatherMap)
-- Dockerized services, logging, and testing
+- Upload & Analyze: drag‑and‑drop CSV upload with strict schema validation
+- Modern analytics dashboard: clean, centered UI with interactive Plotly charts
+- Fast modeling: multivariate regression for GDP growth with 95% uncertainty bands
+- Causal insights: Granger-causality summary and network visualization
+- What‑if scenarios: sliders to explore impact of key drivers in real time
+- Robust UX: caching, helpful tooltips, and graceful missing‑data handling (imputation)
+- DevOps ready: Dockerized services, healthchecks, logs, tests; optional external API clients
 
 ## Project Structure
 
@@ -43,7 +43,7 @@ SocioStatSense is a production-ready adaptive statistical modeling system that c
 
 ## Quick Start
 
-Sample dataset download: place your synthetic CSV at `data/samples/synthetic_socioeconomic.csv` and upload it via the app (File Uploader). The app requires the following columns: `date, unemployment_rate, inflation_rate, gdp_growth, twitter_sentiment, google_trends_index, avg_temperature, stock_index_close, mobility_change, covid_cases`. 
+Upload your dataset via the app (File Uploader). The CSV must contain these columns: `date, unemployment_rate, inflation_rate, gdp_growth, twitter_sentiment, google_trends_index, avg_temperature, stock_index_close, mobility_change, covid_cases`. If you want to keep a sample file in the repo, place it at `data/samples/socioeconomic.csv` and upload it from there.
 
 1) Clone and setup
 
@@ -131,14 +131,12 @@ The clients use requests/Tweepy with robust error handling, rate-limit detection
 ## Dashboard (app.py)
 
 - Modern, centered dark UI with custom CSS
-- Sidebar scenario controls (date range, sources, scenarios, magnitudes)
-- Real-time predictions with uncertainty bands (placeholder)
-- Variable importance (interactive bar chart)
-- Causal network (interactive graph)
-- Alerts & anomalies banners
+- File uploader with schema validation and clear error messaging
+- Time series overview for each column (interactive Plotly)
+- Multivariate regression predictions with 95% uncertainty bands
+- Granger-causality summary and network visualization
+- What‑if scenario sliders with live prediction updates
 - Footer with project info/version
-
-Connect your live model/data by replacing placeholder generators with pipeline outputs.
 
 ## Testing
 
