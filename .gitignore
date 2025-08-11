@@ -5,12 +5,30 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.py[cod]
+*.so
+
+# Virtual environments
+venv/
+.venv/
+.env/
+
+# Jupyter
+.ipynb_checkpoints/
 
 # Data and artifacts
 /data/
 /logs/
 /models/
 /reports/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
 
 # VSCode/Cursor
 .vscode/
