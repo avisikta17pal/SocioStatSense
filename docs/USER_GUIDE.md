@@ -696,6 +696,54 @@ docker-compose up --scale dashboard=2
 
 ---
 
+## External API Clients
+
+This project includes reusable clients for Twitter, Alpha Vantage, and OpenWeatherMap.
+
+### Environment Variables (.env)
+Create a `.env` file in the project root with your API keys:
+
+```
+TWITTER_BEARER_TOKEN=...
+ALPHAVANTAGE_API_KEY=...
+OPENWEATHER_API_KEY=...
+```
+
+Docker Compose mounts `.env` into all services automatically. Locally, variables are loaded by `python-dotenv` when you import the clients.
+
+### Installation
+Dependencies are already listed in `requirements.txt` (`tweepy`, `requests`, `python-dotenv`, `pandas`).
+
+### Usage Examples
+
+- Twitter recent tweets:
+  ```python
+  from src.api_clients import fetch_twitter_recent_tweets
+  df = fetch_twitter_recent_tweets("inflation", max_results=50)
+  print(df.head())
+  ```
+
+- Alpha Vantage stock time series:
+  ```python
+  from src.api_clients import fetch_alpha_vantage_stock
+  df = fetch_alpha_vantage_stock("AAPL", interval="daily")
+  print(df.tail())
+  ```
+
+- OpenWeather current conditions:
+  ```python
+  from src.api_clients import fetch_openweather_current
+  data = fetch_openweather_current("London,UK")
+  print(data["weather"][0]["description"], data["main"]["temp"]) 
+  ```
+
+### Error Handling & Rate Limits
+- Twitter uses Tweepy v2 with `wait_on_rate_limit=True`; rate-limit errors are surfaced.
+- Alpha Vantage returns a "Note" on rate limits; functions raise a clear `RuntimeError`.
+- OpenWeather returns `cod != 200` on errors; functions raise `RuntimeError` with details.
+
+---
+
 ## Support and Resources
 
 ### Documentation

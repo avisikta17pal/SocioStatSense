@@ -54,13 +54,18 @@ An end-to-end, production-ready adaptive statistical modeling system that contin
    pip install -r requirements.txt
    ```
 
-2. **Run with Docker**:
+2. **Create .env** (API keys):
    ```bash
-   docker-compose up --build
+   cp .env.example .env  # or create .env and add your keys
    ```
 
-3. **Access Dashboard**:
-   Open http://localhost:8501 in your browser
+3. **Run with Docker**:
+    ```bash
+    docker-compose up --build
+    ```
+
+4. **Access Dashboard**:
+    Open http://localhost:8501 in your browser
 
 ## 📈 Usage
 

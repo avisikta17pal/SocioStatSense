@@ -1,0 +1,17 @@
+# Environment files
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+
+# Data and artifacts
+/data/
+/logs/
+/models/
+/reports/
+
+# VSCode/Cursor
+.vscode/
+.idea/
