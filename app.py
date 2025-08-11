@@ -278,36 +278,62 @@ st.markdown(
 numeric_cols = [c for c in df.columns if c != "date"]
 target = "gdp_growth"
 features = [c for c in numeric_cols if c != target]
-X_all = df[features].astype(float).values
-y = df[target].astype(float).values
+# Coerce to numeric defensively
+X_df = df[features].apply(pd.to_numeric, errors="coerce")
+X_df = X_df.apply(lambda s: s.fillna(s.mean()))
+X_all = X_df.values
+y = pd.to_numeric(df[target], errors="coerce").fillna(method="ffill").fillna(method="bfill").values
 
-# Baseline OLS
-ols = LinearRegression().fit(X_all, y)
-y_hat_ols = ols.predict(X_all)
-resid_std_ols = float(np.std(y - y_hat_ols))
+active_model_name = ""
+active_model = None
 
-# RidgeCV with time-series split
-alphas = np.logspace(-3, 3, 25)
-tscv = TimeSeriesSplit(n_splits=5)
-ridge = RidgeCV(alphas=alphas, cv=tscv).fit(X_all, y)
-y_hat_ridge = ridge.predict(X_all)
-resid_std_ridge = float(np.std(y - y_hat_ridge))
+try:
+    # Baseline OLS
+    ols = LinearRegression().fit(X_all, y)
+    y_hat_ols = ols.predict(X_all)
+    resid_std_ols = float(np.std(y - y_hat_ols))
 
-# KPIs
-rmse_ols = mean_squared_error(y, y_hat_ols, squared=False)
-mae_ols = mean_absolute_error(y, y_hat_ols)
-rmse_ridge = mean_squared_error(y, y_hat_ridge, squared=False)
-mae_ridge = mean_absolute_error(y, y_hat_ridge)
+    # RidgeCV with time-series split
+    alphas = np.logspace(-3, 3, 25)
+    tscv = TimeSeriesSplit(n_splits=5)
+    ridge = RidgeCV(alphas=alphas, cv=tscv).fit(X_all, y)
+    y_hat_ridge = ridge.predict(X_all)
+    resid_std_ridge = float(np.std(y - y_hat_ridge))
 
-k1, k2, k3, k4 = st.columns(4)
-with k1: st.metric("RMSE (OLS)", f"{rmse_ols:.3f}")
-with k2: st.metric("MAE (OLS)", f"{mae_ols:.3f}")
-with k3: st.metric("RMSE (Ridge)", f"{rmse_ridge:.3f}")
-with k4: st.metric("MAE (Ridge)", f"{mae_ridge:.3f}")
+    # KPIs
+    rmse_ols = mean_squared_error(y, y_hat_ols, squared=False)
+    mae_ols = mean_absolute_error(y, y_hat_ols)
+    rmse_ridge = mean_squared_error(y, y_hat_ridge, squared=False)
+    mae_ridge = mean_absolute_error(y, y_hat_ridge)
 
-# Plot predictions (Ridge)
-y_hat = y_hat_ridge
-resid_std = resid_std_ridge
+    k1, k2, k3, k4 = st.columns(4)
+    with k1: st.metric("RMSE (OLS)", f"{rmse_ols:.3f}")
+    with k2: st.metric("MAE (OLS)", f"{mae_ols:.3f}")
+    with k3: st.metric("RMSE (Ridge)", f"{rmse_ridge:.3f}")
+    with k4: st.metric("MAE (Ridge)", f"{mae_ridge:.3f}")
+
+    # Choose better model by RMSE
+    if rmse_ridge <= rmse_ols:
+        active_model_name = "Ridge"
+        active_model = ridge
+        y_hat = y_hat_ridge
+        resid_std = resid_std_ridge
+    else:
+        active_model_name = "OLS"
+        active_model = ols
+        y_hat = y_hat_ols
+        resid_std = resid_std_ols
+
+except Exception as exc:
+    # Fallback: OLS only
+    st.markdown(f"<div class='banner banner-warn'>Model comparison failed ({exc}). Falling back to OLS.</div>", unsafe_allow_html=True)
+    ols = LinearRegression().fit(X_all, y)
+    y_hat = ols.predict(X_all)
+    resid_std = float(np.std(y - y_hat))
+    active_model_name = "OLS"
+    active_model = ols
+
+# Plot predictions
 y_low = y_hat - 1.96 * resid_std
 y_up = y_hat + 1.96 * resid_std
 
@@ -373,14 +399,14 @@ st.plotly_chart(fig_pred, use_container_width=True, theme="streamlit")
 # Optional: change-point detection visual if ruptures is available
 if rpt is not None:
     try:
-        st.caption("Structural Breaks: detected on 'gdp_growth' using Pelt + RBFS model.")
-        series = df["gdp_growth"].astype(float).values
+        st.caption("Structural Breaks: detected on 'gdp_growth' using Pelt + RBF model.")
+        series = pd.to_numeric(df["gdp_growth"], errors="coerce").fillna(method="ffill").fillna(method="bfill").values
         algo = rpt.Pelt(model="rbf").fit(series)
         bkps = algo.predict(pen=5)
         fig_cp, ax = rpt.display(series, bkps, figsize=(9, 2.2))
         st.pyplot(fig_cp)
-    except Exception:
-        pass
+    except Exception as exc:
+        st.caption(f"Change-point detection skipped: {exc}")
 
 # ------------------------------------------------------------
 # Causal analysis (simple Granger summary to gdp_growth)
