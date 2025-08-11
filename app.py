@@ -130,6 +130,14 @@ errors: List[str] = []
 if uploaded is not None:
     try:
         df_up = load_csv(uploaded)
+        # Normalize column names (trim spaces)
+        df_up.columns = [str(c).strip() for c in df_up.columns]
+        # Allow case-insensitive 'date' column and rename to exact 'date'
+        if "date" not in df_up.columns:
+            for c in df_up.columns:
+                if str(c).strip().lower() == "date":
+                    df_up = df_up.rename(columns={c: "date"})
+                    break
         ok, missing = validate_dataframe(df_up)
         if not ok:
             errors.append(
@@ -166,11 +174,42 @@ if active_df is None:
 # ------------------------------------------------------------
 df = active_df.copy()
 # Ensure date is datetime
+# Robust date parsing
 try:
-    df["date"] = pd.to_datetime(df["date"]).dt.date
+    parsed = pd.to_datetime(
+        df["date"],
+        errors="coerce",
+        infer_datetime_format=True,
+        utc=False,
+    )
+    # Fallback: try day-first if many NaT
+    if parsed.isna().mean() > 0.2:
+        parsed = pd.to_datetime(df["date"], errors="coerce", dayfirst=True, infer_datetime_format=True)
+    # Fallback 2: try numeric epoch
+    if parsed.isna().mean() > 0.2:
+        try:
+            as_float = pd.to_numeric(df["date"], errors="coerce")
+            # Heuristic: seconds vs ms
+            parsed_epoch = pd.to_datetime(
+                np.where(as_float > 1e12, as_float, as_float * 1000),
+                errors="coerce",
+                unit="ms",
+                utc=False,
+            )
+            parsed = parsed.fillna(parsed_epoch)
+        except Exception:
+            pass
+    # Drop rows that are still invalid
+    bad = parsed.isna().sum()
+    if bad > 0:
+        st.markdown(
+            f"<div class='banner banner-warn'>Dropped {int(bad)} rows with unparseable dates.</div>",
+            unsafe_allow_html=True,
+        )
+    df = df.assign(date=parsed.dropna().dt.date).dropna(subset=["date"]).reset_index(drop=True)
 except Exception:
     st.markdown(
-        "<div class='banner banner-error'>Invalid date format in 'date' column.</div>",
+        "<div class='banner banner-error'>Invalid date format in 'date' column (unable to parse).</div>",
         unsafe_allow_html=True,
     )
     st.stop()
