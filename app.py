@@ -301,10 +301,10 @@ try:
     resid_std_ridge = float(np.std(y - y_hat_ridge))
 
     # KPIs
-    rmse_ols = mean_squared_error(y, y_hat_ols, squared=False)
-    mae_ols = mean_absolute_error(y, y_hat_ols)
-    rmse_ridge = mean_squared_error(y, y_hat_ridge, squared=False)
-    mae_ridge = mean_absolute_error(y, y_hat_ridge)
+    rmse_ols = float(np.sqrt(mean_squared_error(y, y_hat_ols)))
+    mae_ols = float(mean_absolute_error(y, y_hat_ols))
+    rmse_ridge = float(np.sqrt(mean_squared_error(y, y_hat_ridge)))
+    mae_ridge = float(mean_absolute_error(y, y_hat_ridge))
 
     k1, k2, k3, k4 = st.columns(4)
     with k1: st.metric("RMSE (OLS)", f"{rmse_ols:.3f}")
@@ -525,12 +525,13 @@ for i, colname in enumerate(scenario_cols):
         sc_vals[colname] = st.slider(colname, min_value=rng[0], max_value=rng[1], value=current, step=step)
 
 last_row = df.iloc[[-1]].copy()
-X_scn = last_row[features].astype(float).copy()
+X_scn = last_row[features].apply(pd.to_numeric, errors="coerce").apply(lambda s: s.fillna(s.mean())).copy()
 for k, v in sc_vals.items():
     if k in X_scn.columns:
         X_scn.loc[:, k] = v
 
-y_hat_scn = model.predict(X_scn.values)
+# Use the selected active model for scenario prediction
+y_hat_scn = active_model.predict(X_scn.values)
 lo_scn = y_hat_scn - 1.96 * resid_std
 up_scn = y_hat_scn + 1.96 * resid_std
 
