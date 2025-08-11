@@ -94,20 +94,13 @@ def load_csv(file: io.BytesIO | io.StringIO) -> pd.DataFrame:
 
 
 # ------------------------------------------------------------
-# Sidebar: Upload Dataset
+# Sidebar (optional)
 # ------------------------------------------------------------
 with st.sidebar:
-    st.markdown("### Upload Dataset")
-    st.caption("Upload a CSV with the required columns.")
-
-    uploaded = st.file_uploader(
-        "Upload CSV",
-        type=["csv"],
-        help=",".join(REQUIRED_COLUMNS),
-    )
+    st.caption("Use the uploader on the main page.")
 
 # ------------------------------------------------------------
-# Header
+# Header + Centered Uploader
 # ------------------------------------------------------------
 st.markdown(
     """
@@ -118,6 +111,15 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+
+c1, c2, c3 = st.columns([1, 6, 1])
+with c2:
+    st.markdown("#### Upload Dataset")
+    uploaded = st.file_uploader(
+        "Upload CSV",
+        type=["csv"],
+        help=",".join(REQUIRED_COLUMNS),
+    )
 
 # ------------------------------------------------------------
 # Load Dataset
