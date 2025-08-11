@@ -1,0 +1,97 @@
+data_sources:
+  economic_indicators:
+    provider: "FRED"
+    api_key_env: "FRED_API_KEY"
+    base_url: "https://api.stlouisfed.org/fred"
+    series:
+      - id: "UNRATE"
+        name: "unemployment_rate"
+        description: "Unemployment Rate"
+      - id: "CPIAUCSL"
+        name: "cpi"
+        description: "Consumer Price Index"
+      - id: "GDP"
+        name: "gdp"
+        description: "Gross Domestic Product"
+      - id: "FEDFUNDS"
+        name: "fed_funds_rate"
+        description: "Federal Funds Rate"
+    update_frequency: "daily"
+    
+  market_data:
+    provider: "Yahoo Finance"
+    symbols:
+      - "^GSPC"  # S&P 500
+      - "^VIX"   # Volatility Index
+      - "DXY"    # Dollar Index
+      - "GC=F"   # Gold Futures
+    update_frequency: "hourly"
+    
+  social_sentiment:
+    provider: "Twitter"
+    api_key_env: "TWITTER_API_KEY"
+    api_secret_env: "TWITTER_API_SECRET"
+    bearer_token_env: "TWITTER_BEARER_TOKEN"
+    keywords:
+      - "economy"
+      - "inflation"
+      - "unemployment"
+      - "recession"
+      - "economic policy"
+    update_frequency: "hourly"
+    sample_size: 1000
+    
+  google_trends:
+    provider: "Google Trends"
+    keywords:
+      - "unemployment benefits"
+      - "job search"
+      - "economic recession"
+      - "inflation news"
+      - "housing market"
+    geo: "US"
+    timeframe: "now 7-d"
+    update_frequency: "daily"
+    
+  weather_data:
+    provider: "OpenWeatherMap"
+    api_key_env: "OPENWEATHER_API_KEY"
+    locations:
+      - "New York,US"
+      - "Los Angeles,US"
+      - "Chicago,US"
+      - "Houston,US"
+    metrics:
+      - "temperature"
+      - "precipitation"
+      - "humidity"
+    update_frequency: "daily"
+
+# Data Processing Settings
+preprocessing:
+  missing_value_strategy: "interpolate"  # interpolate, forward_fill, drop
+  outlier_detection: "iqr"  # iqr, zscore, isolation_forest
+  outlier_threshold: 3.0
+  normalization: "standard"  # standard, minmax, robust
+  time_alignment: "1H"  # pandas frequency string
+  
+# Model Configuration
+modeling:
+  window_size: 168  # hours (1 week)
+  update_frequency: "1H"
+  change_point_min_size: 24  # minimum hours between change points
+  sparse_selection_alpha: 0.01
+  uncertainty_quantiles: [0.05, 0.25, 0.75, 0.95]
+  
+# Dashboard Settings
+dashboard:
+  refresh_interval: 60  # seconds
+  max_display_points: 1000
+  default_forecast_horizon: 72  # hours
+  
+# Alerts & Monitoring
+alerts:
+  change_point_threshold: 0.8
+  anomaly_threshold: 2.5
+  model_drift_threshold: 0.1
+  notification_methods: ["email", "dashboard"]
