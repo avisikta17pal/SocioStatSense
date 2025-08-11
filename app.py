@@ -9,8 +9,15 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, RidgeCV
+from sklearn.model_selection import TimeSeriesSplit
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from statsmodels.tsa.stattools import grangercausalitytests
+
+try:
+    import ruptures as rpt
+except Exception:
+    rpt = None
 
 
 # ------------------------------------------------------------
@@ -232,8 +239,8 @@ if na_counts.sum() > 0:
 # ------------------------------------------------------------
 st.markdown(
     """
-<div class="section-title">📈 Time Series Overview <span class="help" title="Each feature visualized across the chosen date range.">?</span></div>
-<div class="section-subtitle">Clean, interactive line charts for quick inspection.</div>
+<div class="section-title">📈 Adaptive Socio‑Economic Nowcasting <span class="help" title="Visual inspection of key drivers over time.">?</span></div>
+<div class="section-subtitle">Clean, interactive time series views for quick inspection.</div>
 """,
     unsafe_allow_html=True,
 )
@@ -257,40 +264,60 @@ for row in rows:
             st.plotly_chart(fig, use_container_width=True, theme="streamlit")
 
 # ------------------------------------------------------------
-# Modeling: multivariate regression for gdp_growth
+# Modeling: baseline vs ridge + KPIs
 # ------------------------------------------------------------
 st.markdown(
     """
-<div class="section-title">🧠 Modeling <span class="help" title="Multivariate regression predicts gdp_growth from other variables with uncertainty bands from residuals.">?</span></div>
-<div class="section-subtitle">Simple, fast prediction demo. Replace with your production models as needed.</div>
+<div class="section-title">🧠 Modeling <span class="help" title="Baseline OLS vs. regularized Ridge regression with uncertainty bands from residuals.">?</span></div>
+<div class="section-subtitle">Model comparison and quick KPIs. Replace models with production-grade ones as needed.</div>
 """,
     unsafe_allow_html=True,
 )
 
-# Fit simple regression model
+# Prepare data
 numeric_cols = [c for c in df.columns if c != "date"]
 target = "gdp_growth"
 features = [c for c in numeric_cols if c != target]
-
 X_all = df[features].astype(float).values
 y = df[target].astype(float).values
-model = LinearRegression().fit(X_all, y)
 
-# Predictions and uncertainty via residual std
-resid_std = float(np.std(y - model.predict(X_all)))
-y_hat = model.predict(X_all)
+# Baseline OLS
+ols = LinearRegression().fit(X_all, y)
+y_hat_ols = ols.predict(X_all)
+resid_std_ols = float(np.std(y - y_hat_ols))
+
+# RidgeCV with time-series split
+alphas = np.logspace(-3, 3, 25)
+tscv = TimeSeriesSplit(n_splits=5)
+ridge = RidgeCV(alphas=alphas, cv=tscv).fit(X_all, y)
+y_hat_ridge = ridge.predict(X_all)
+resid_std_ridge = float(np.std(y - y_hat_ridge))
+
+# KPIs
+rmse_ols = mean_squared_error(y, y_hat_ols, squared=False)
+mae_ols = mean_absolute_error(y, y_hat_ols)
+rmse_ridge = mean_squared_error(y, y_hat_ridge, squared=False)
+mae_ridge = mean_absolute_error(y, y_hat_ridge)
+
+k1, k2, k3, k4 = st.columns(4)
+with k1: st.metric("RMSE (OLS)", f"{rmse_ols:.3f}")
+with k2: st.metric("MAE (OLS)", f"{mae_ols:.3f}")
+with k3: st.metric("RMSE (Ridge)", f"{rmse_ridge:.3f}")
+with k4: st.metric("MAE (Ridge)", f"{mae_ridge:.3f}")
+
+# Plot predictions (Ridge)
+y_hat = y_hat_ridge
+resid_std = resid_std_ridge
 y_low = y_hat - 1.96 * resid_std
 y_up = y_hat + 1.96 * resid_std
 
-pred_df = pd.DataFrame(
-    {
-        "date": df["date"],
-        "gdp_growth": df["gdp_growth"].astype(float).values,
-        "y_hat": y_hat,
-        "y_low": y_low,
-        "y_up": y_up,
-    }
-)
+pred_df = pd.DataFrame({
+    "date": df["date"],
+    "gdp_growth": df["gdp_growth"].astype(float).values,
+    "y_hat": y_hat,
+    "y_low": y_low,
+    "y_up": y_up,
+})
 
 fig_pred = go.Figure()
 fig_pred.add_trace(
@@ -343,12 +370,24 @@ fig_pred.update_xaxes(showgrid=False)
 fig_pred.update_yaxes(gridcolor="rgba(255,255,255,0.08)")
 st.plotly_chart(fig_pred, use_container_width=True, theme="streamlit")
 
+# Optional: change-point detection visual if ruptures is available
+if rpt is not None:
+    try:
+        st.caption("Structural Breaks: detected on 'gdp_growth' using Pelt + RBFS model.")
+        series = df["gdp_growth"].astype(float).values
+        algo = rpt.Pelt(model="rbf").fit(series)
+        bkps = algo.predict(pen=5)
+        fig_cp, ax = rpt.display(series, bkps, figsize=(9, 2.2))
+        st.pyplot(fig_cp)
+    except Exception:
+        pass
+
 # ------------------------------------------------------------
 # Causal analysis (simple Granger summary to gdp_growth)
 # ------------------------------------------------------------
 st.markdown(
     """
-<div class="section-title">🔗 Causal Analysis <span class="help" title="Granger tests check if a variable improves forecasting of gdp_growth.">?</span></div>
+<div class="section-title">🔗 Causal Analysis <span class="help" title="Granger tests and driver graph for decision support.">?</span></div>
 <div class="section-subtitle">Edges shown where p-value < 0.05.</div>
 """,
     unsafe_allow_html=True,
@@ -427,7 +466,7 @@ else:
 st.markdown(
     """
 <div class="section-title">🧪 What‑If Scenarios <span class="help" title="Adjust key inputs and see predicted gdp_growth update.">?</span></div>
-<div class="section-subtitle">Interactive scenario controls update the prediction for the latest date.</div>
+<div class="section-subtitle">Interactive controls update the latest prediction; use this for policy and stress testing.</div>
 """,
     unsafe_allow_html=True,
 )
