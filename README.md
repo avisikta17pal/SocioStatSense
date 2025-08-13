@@ -44,7 +44,7 @@ SocioStatSense is a production-ready adaptive statistical modeling system that c
 ## Quick Start
 
 Download the dataset:
-- View in repo: [socio_economic_synthetic_data.csv](socio_economic_synthetic_data.csv)
+- Dataset for Testing: [socio_economic_synthetic_data.csv](socio_economic_synthetic_data.csv)
   - Open the link and click "Download Raw File" to download the file.
 
 
